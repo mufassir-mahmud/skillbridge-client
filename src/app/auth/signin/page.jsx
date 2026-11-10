@@ -39,31 +39,66 @@ export default function SignInPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setSuccessMsg("");
-    setLoading(true);
+  e.preventDefault();
 
-    try {
-      const { data, error } = await authClient.signIn.email({
-        email: formData.email,
-        password: formData.password,
-      });
+  setErrorMsg("");
+  setSuccessMsg("");
+  setLoading(true);
 
-      if (error) {
-        setErrorMsg(error.message || "Invalid email or password. Please try again.");
-      } else {
-        setSuccessMsg("Signed in successfully! Redirecting...");
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
-      }
-    } catch (err) {
-      setErrorMsg("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
+  try {
+    const { data, error } = await authClient.signIn.email({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (error) {
+      setErrorMsg(
+        error.message || "Invalid email or password. Please try again."
+      );
+      return;
     }
-  };
+
+    // Get the latest authenticated session
+    const { data: sessionData, error: sessionError } =
+      await authClient.getSession();
+
+    if (sessionError || !sessionData?.user) {
+      setErrorMsg("Unable to retrieve your session. Please try again.");
+      return;
+    }
+
+    // Get the user's role
+    const role = sessionData.user.role;
+
+    console.log("Logged in user:", sessionData.user);
+    console.log("User role:", role);
+
+    // Role-based dashboard routes
+    const dashboardRoutes = {
+      client: "/dashboard/client",
+      freelancer: "/dashboard/freelancer",
+      admin: "/dashboard/admin",
+    };
+
+    const redirectPath = dashboardRoutes[role];
+
+    if (!redirectPath) {
+      setErrorMsg(`Invalid user role: ${role}`);
+      return;
+    }
+
+    setSuccessMsg("Signed in successfully! Redirecting...");
+
+    router.replace(redirectPath);
+    router.refresh();
+
+  } catch (err) {
+    console.error("Sign in error:", err);
+    setErrorMsg("An unexpected error occurred. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 dark:bg-gray-950">

@@ -13,6 +13,8 @@ import {
   Input,
   Button,
   Alert,
+  Radio,
+  RadioGroup,
 } from "@heroui/react";
 import { At, Eye, EyeSlash, Person, Picture, Lock } from "@gravity-ui/icons";
 import { authClient } from "@/lib/auth-client";
@@ -28,6 +30,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "client",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -61,16 +64,30 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         image: formData.photoUrl,
+        role: formData.role,
       });
 
       if (error) {
         setErrorMsg(error.message || "Failed to create account. Please try again.");
       } else {
-        setSuccessMsg("Account created successfully! Redirecting to Home...");
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
-      }
+  setSuccessMsg("Signed in successfully! Redirecting...");
+
+  const { data: session } = await authClient.getSession();
+
+  const role = session?.user?.role;
+
+  const dashboardRoutes = {
+    seeker: "/dashboard/client",
+    employer: "/dashboard/freelencer",
+    admin: "/dashboard/admin",
+  };
+
+  const redirectPath = dashboardRoutes[role] || "/";
+
+  setTimeout(() => {
+    router.replace(redirectPath);
+  }, 1000);
+}
     } catch (err) {
       setErrorMsg("An unexpected error occurred. Please try again.");
     } finally {
@@ -208,7 +225,41 @@ export default function SignUpPage() {
                 </button>
               </InputGroup>
             </TextField>
+                  {/* Role Input */}
+                  <div className="flex flex-col gap-4">
+  <Label id="role-label">Select A Role</Label>
 
+  <RadioGroup
+    aria-labelledby="role-label"
+    name="role"
+    value={formData.role}
+    onChange={(value) =>
+      setFormData((prev) => ({
+        ...prev,
+        role: value,
+      }))
+    }
+    orientation="horizontal"
+  >
+    <Radio value="client">
+      <Radio.Content>
+        <Radio.Control>
+          <Radio.Indicator />
+        </Radio.Control>
+        Client
+      </Radio.Content>
+    </Radio>
+
+    <Radio value="recruiter">
+      <Radio.Content>
+        <Radio.Control>
+          <Radio.Indicator />
+        </Radio.Control>
+        Freelencer
+      </Radio.Content>
+    </Radio>
+  </RadioGroup>
+</div>
             <Button
               type="submit"
               color="primary"

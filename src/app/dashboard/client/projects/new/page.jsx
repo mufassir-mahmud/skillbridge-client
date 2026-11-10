@@ -1,12 +1,18 @@
+
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import CreateProjectWizard from "@/components/dashboard/client/CreateProjectWizard";
+import { createProject } from "@/lib/actions/projects";
+import { toast } from "@heroui/react";
 
 export default function NewProjectPage() {
   const router = useRouter();
+
+  const [wizardKey, setWizardKey] = useState(0);
+
   const { data: session, isPending } = authClient.useSession();
 
   const handlePublish = async (formData) => {
@@ -24,9 +30,23 @@ export default function NewProjectPage() {
       createdAt: new Date(),
     };
 
-    console.log("Project Payload:", projectPayload);
+    try {
+      const res = await createProject(projectPayload);
 
-    // API integration will be added later.
+      if (res.insertedId) {
+        toast.success("Created New Job");
+
+        // Reset CreateProjectWizard
+        setWizardKey((prevKey) => prevKey + 1);
+
+        router.push("/dashboard/client");
+      }
+    } catch (error) {
+      console.error("Project creation failed:", error);
+      toast.danger("Failed to create project");
+    }
+
+    console.log("Project Payload:", projectPayload);
   };
 
   if (isPending) {
@@ -39,7 +59,10 @@ export default function NewProjectPage() {
 
   return (
     <div className="p-6 md:p-10 min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <CreateProjectWizard onPublish={handlePublish} />
+      <CreateProjectWizard
+        key={wizardKey}
+        onPublish={handlePublish}
+      />
     </div>
   );
 }
